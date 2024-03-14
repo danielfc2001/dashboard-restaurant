@@ -5,17 +5,21 @@ import { loginUser } from "../services/auth";
 
 export type Auth = {
   isAuthenticated: boolean;
+  userProfile: ResponseUser;
   authErrors: AuthErrorsTypes;
   handleLoginUser: (data: FormValues) => void;
+  handleLogoutUser: () => void;
+};
+
+type ResponseUser = {
+  id: string | null;
+  username: string | null;
+  role: string | null;
+  token?: string | undefined;
 };
 
 type ResponseDataTypes = {
-  user: {
-    id: string;
-    username: string;
-    role: string;
-    token: string;
-  };
+  user: ResponseUser;
   message: string;
 };
 
@@ -33,6 +37,11 @@ interface Props {
 
 export const AuthProvider: FC<Props> = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [userProfile, setUserProfile] = useState<ResponseUser>({
+    id: null,
+    username: null,
+    role: null,
+  });
   const navigate = useNavigate();
   const [authErrors, setAuthErrors] = useState<AuthErrorsTypes>({
     status: false,
@@ -46,7 +55,12 @@ export const AuthProvider: FC<Props> = ({ children }) => {
       if (responseData) {
         console.log(responseData);
         setIsAuthenticated(true);
-        localStorage.setItem("auth_token", responseData.user.token);
+        setUserProfile({
+          id: responseData.user.id,
+          username: responseData.user.username,
+          role: responseData.user.role,
+        });
+        localStorage.setItem("auth_token", responseData.user.token!);
         navigate("/dashboard");
       }
     } catch (err: any) {
@@ -57,6 +71,17 @@ export const AuthProvider: FC<Props> = ({ children }) => {
         message: err.message,
       });
     }
+  };
+
+  const handleLogoutUser = () => {
+    setIsAuthenticated(false);
+    setUserProfile({
+      id: null,
+      username: null,
+      role: null,
+    });
+    localStorage.removeItem("auth_token");
+    navigate("/");
   };
 
   useEffect(() => {
@@ -74,7 +99,13 @@ export const AuthProvider: FC<Props> = ({ children }) => {
 
   return (
     <AuthContext.Provider
-      value={{ isAuthenticated, authErrors, handleLoginUser }}
+      value={{
+        isAuthenticated,
+        userProfile,
+        authErrors,
+        handleLoginUser,
+        handleLogoutUser,
+      }}
     >
       {children}
     </AuthContext.Provider>
